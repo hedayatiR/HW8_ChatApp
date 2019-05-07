@@ -6,13 +6,14 @@ import java.io.*;
 import java.net.Socket;
 
 public class Client {
+    private static int clientNum=1;
     private ClientUi ui;
     private Socket socket = null;
     private PrintWriter out;
     BufferedReader br = null;
     // -----------------------------------------------------------
     public Client(){
-        ui = new ClientUi("Client", 100,100, this);
+        ui = new ClientUi("Client "+clientNum++ , 100,100, this);
         initClient();
         receiveMessages();
     }

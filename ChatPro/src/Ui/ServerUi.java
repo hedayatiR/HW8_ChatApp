@@ -54,7 +54,7 @@ public class ServerUi {
     }
     // -----------------------------------------------------------
 
-    public void addTextToTextArea(String text) {
+    public synchronized void addTextToTextArea(String text) {
         ta.append(text);
     }
     // -----------------------------------------------------------

@@ -9,67 +9,97 @@ import java.net.Socket;
 public class Server {
     private ServerUi ui;
     private ServerSocket serverSocket = null;
-    private Socket socket = null;
+    private Socket currentClintSocket = null;
     private PrintWriter out;
-    BufferedReader br = null;
 
     // -----------------------------------------------------------
     public Server() {
+        int clientNum = 1;
         ui = new ServerUi("Server", 500, 100, this);
         // init server
         try {
             serverSocket = new ServerSocket(6666);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        initConnection();
-        receiveMessages();
-    }
-    // -----------------------------------------------------------
-    public void initConnection() {
-        try {
             ui.addTextToTextArea("Waiting for a client ...\n");
-            socket = serverSocket.accept();
-            ui.addTextToTextArea("Client accepted!\n");
-
-            // stream reader for read from server
-            InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-            br = new BufferedReader(isr);
-            // output stream for send message to server
-            out = new PrintWriter(socket.getOutputStream(), true);
-
+            while (true) {
+                new Thread(new clientTask(serverSocket.accept(), clientNum++))
+                        .start();
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+    // -----------------------------------------------------------
 
     // -----------------------------------------------------------
-    public void receiveMessages() {
-        String line = "";
+    public class clientTask implements Runnable {
+        private Socket socket;
+        private BufferedReader br = null;
+        private String clientName;
 
-        try {
-            while (true) {
-                if (socket.isConnected()) {
-                    line = br.readLine();
-                    if (line != null)
-                        ui.addTextToTextArea("Client : " + line + "\n");
-                }
-            }
-        } catch (java.net.SocketException e) {
-            ui.addTextToTextArea("connection to client lost!\n");
-            try { socket.close(); } catch (IOException e1) { e1.printStackTrace(); }
-            initConnection();
-            receiveMessages();
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
+        public clientTask(Socket socket, int clientNum) {
+            this.socket = socket;
+            this.clientName = "Client " + clientNum;
+            ui.addTextToTextArea(this.clientName + " connected!\n");
         }
 
+        @Override
+        public void run() {
+            initStreams();
+            receiveMessages();
+        }
+
+        // -----------------------------------------------------------
+        public void initStreams() {
+            try {
+                // stream reader for read from server
+                InputStreamReader isr = new InputStreamReader(socket.getInputStream());
+                br = new BufferedReader(isr);
+
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
+        // -----------------------------------------------------------
+        public void receiveMessages() {
+            String line = "";
+
+            try {
+                while (true) {
+                    if (socket.isConnected()) {
+                        line = br.readLine();
+                        if (line != null) {
+                            currentClintSocket = socket;
+                            ui.addTextToTextArea(this.clientName + " : " + line + "\n");
+                        }
+                    }
+                }
+            } catch (java.net.SocketException e) {
+                ui.addTextToTextArea("connection to " + this.clientName + " lost!\n");
+                try {
+                    socket.close();
+                } catch (IOException e1) {
+                    e1.printStackTrace();
+                }
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
+
     // -----------------------------------------------------------
     public void sendMessage(String message) {
+        // output stream for send message to server
+        try {
+            out = new PrintWriter(currentClintSocket.getOutputStream(), true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
         out.println(message);
     }
+
     // -----------------------------------------------------------
 }
