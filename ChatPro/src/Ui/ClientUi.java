@@ -1,7 +1,5 @@
 package Ui;
 
-import Service.Client;
-
 import javax.swing.*;
 import java.awt.*;
 
@@ -12,14 +10,14 @@ public class ClientUi {
     private JTextField tf;
     private JButton send;
     private JTextArea ta;
-    private Client client;
+    private ClickCallback clickCallback;
 
     // -----------------------------------------------------------
-    public ClientUi(String windowName, int x, int y, Client client) {
+    public ClientUi(String windowName, int x, int y, ClickCallback clickCallback) {
         initComponents();
         frame.setTitle(windowName);
         frame.setLocation(x, y);
-        this.client = client;
+        this.clickCallback = clickCallback;
     }
 
     // -----------------------------------------------------------
@@ -59,9 +57,13 @@ public class ClientUi {
     // -----------------------------------------------------------
 
     private void jButtonSendActionPerformed(java.awt.event.ActionEvent evt) {
-        client.sendMessage(tf.getText());
+        clickCallback.onClick(tf.getText());
         addTextToTextArea("Me : " + tf.getText() + "\n");
         tf.setText("");
+    }
+    // -----------------------------------------------------------
+    public interface ClickCallback{
+        void onClick(String str);
     }
 
 }

@@ -104,10 +104,4 @@ public class LoginForm {
         frame.pack();
         frame.setVisible(true);
     }
-    // -----------------------------------------------------------
-    public static void main(String[] args) {
-        LoginForm loginForm = new LoginForm();
-    }
-    // -----------------------------------------------------------
-
 }

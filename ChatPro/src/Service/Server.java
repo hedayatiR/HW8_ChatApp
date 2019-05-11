@@ -5,15 +5,18 @@ import Ui.ServerUi;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 
 public class Server {
     private ServerUi ui;
     private ServerSocket serverSocket = null;
     private Socket currentClintSocket = null;
     private PrintWriter out;
+    private HashMap<String, String> clientsUserPass;
 
     // -----------------------------------------------------------
     public Server() {
+        initClientsUserPass();
         int clientNum = 1;
         ui = new ServerUi("Server", 500, 100, this);
         // init server
@@ -28,7 +31,14 @@ public class Server {
             e.printStackTrace();
         }
     }
+
     // -----------------------------------------------------------
+    public void initClientsUserPass() {
+        clientsUserPass = new HashMap<>();
+        clientsUserPass.put("reza", "123");
+        clientsUserPass.put("ali", "1234");
+        clientsUserPass.put("hasan", "321");
+    }
 
     // -----------------------------------------------------------
     public class clientTask implements Runnable {
@@ -45,7 +55,40 @@ public class Server {
         @Override
         public void run() {
             initStreams();
-            receiveMessages();
+            if (processUserPass())
+                receiveMessages();
+        }
+        // -----------------------------------------------------------
+        public boolean processUserPass() {
+            String userName = "";
+            if (socket.isConnected()) {
+                Server.this.currentClintSocket = this.socket;
+                try {
+                    userName = br.readLine();
+                    if (userName != null) {
+                        if (clientsUserPass.containsKey(userName)) {
+                            String password = br.readLine();
+                            if (password != null) {
+                                if(clientsUserPass.get(userName).equals(password)) {
+                                    Server.this.sendMessage("OK.");
+                                    this.clientName = userName;
+                                    return true;
+                                }
+                                else
+                                    Server.this.sendMessage("Password is wrong!");
+                            }
+
+                        } else {
+                            Server.this.sendMessage("There is no such user name!");
+                        }
+
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+
+            }
+            return false;
         }
 
         // -----------------------------------------------------------
@@ -54,7 +97,7 @@ public class Server {
                 // stream reader for read from server
                 InputStreamReader isr = new InputStreamReader(socket.getInputStream());
                 br = new BufferedReader(isr);
-
+                out = new PrintWriter(socket.getOutputStream(), true);
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -88,16 +131,17 @@ public class Server {
             }
 
         }
+
     }
 
     // -----------------------------------------------------------
-    public void sendMessage(String message) {
+    public synchronized void sendMessage(String message) {
         // output stream for send message to server
-        try {
-            out = new PrintWriter(currentClintSocket.getOutputStream(), true);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+            try {
+                out = new PrintWriter(currentClintSocket.getOutputStream(), true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         out.println(message);
     }
 
