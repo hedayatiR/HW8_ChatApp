@@ -1,33 +1,28 @@
 package Ui;
 
-import Service.Server;
-
 import javax.swing.*;
 import java.awt.*;
 
-public class ServerUi {
-    private JFrame frame;
+public class ChatUi extends JFrame {
     private JPanel panel;
     private JLabel label;
     private JTextField tf;
     private JButton send;
     private JTextArea ta;
-    private Server server;
+    private ClickCallback clickCallback;
     // -----------------------------------------------------------
 
-    public ServerUi(String windowName, int x, int y, Server server) {
+    public ChatUi(String windowName, int x, int y, ClickCallback clickCallback) {
         initComponents();
-        frame.setTitle(windowName);
-        frame.setLocation(x, y);
-        this.server = server;
+        setTitle(windowName);
+        setLocation(x, y);
+        this.clickCallback = clickCallback;
     }
     // -----------------------------------------------------------
 
     public void initComponents() {
-        //Creating the Frame
-        frame = new JFrame("Chat Frame");
-        frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        frame.setSize(400, 400);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setSize(400, 400);
 
         //Creating the panel at bottom and adding components
         panel = new JPanel();
@@ -42,9 +37,9 @@ public class ServerUi {
         ta = new JTextArea();
 
         //Adding Components to the frame.
-        frame.getContentPane().add(BorderLayout.SOUTH, panel);
-        frame.getContentPane().add(BorderLayout.CENTER, ta);
-        frame.setVisible(true);
+        getContentPane().add(BorderLayout.SOUTH, panel);
+        getContentPane().add(BorderLayout.CENTER, ta);
+        setVisible(true);
         // Action Listeners
         send.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -60,10 +55,12 @@ public class ServerUi {
     // -----------------------------------------------------------
 
     private void jButtonSendActionPerformed(java.awt.event.ActionEvent evt) {
-        server.sendMessage(tf.getText());
+        clickCallback.onClick(tf.getText());
         addTextToTextArea("Me : " + tf.getText() + "\n");
         tf.setText("");
     }
     // -----------------------------------------------------------
-
+    public interface ClickCallback{
+        void onClick(String str);
+    }
 }

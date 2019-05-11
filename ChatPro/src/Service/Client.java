@@ -1,59 +1,63 @@
 package Service;
 
-import Ui.ClientUi;
+import Ui.ChatUi;
 
 import java.io.*;
 import java.net.Socket;
 
-public class Client {
-    private static int clientNum=1;
-    private ClientUi ui;
-    private Socket socket = null;
+public class Client implements ChatUi.ClickCallback {
+    private static int clientNum = 1;
+    private BufferedReader br = null;
+    private ChatUi ui;
+    private Socket socket;
     private PrintWriter out;
-    BufferedReader br = null;
+
     // -----------------------------------------------------------
-    public Client(){
-        ui = new ClientUi("Client "+clientNum++ , 100,100, this);
-        initClient();
+    public Client(Socket socket, String userName) {
+        this.socket = socket;
+        initStreams();
+        ui = new ChatUi(userName, 100, 100, this);
+        sendMessage("man zendam");
         receiveMessages();
     }
+
     // -----------------------------------------------------------
-    public void initClient(){
+    public void initStreams() {
         try {
-            socket = new Socket("localhost", 6666);
-            //if(socket.isConnected()) {
-            if(socket != null) {
-                // stream reader for read from server
-                ui.addTextToTextArea("Connection to server established!\n");
-                InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-                br = new BufferedReader(isr);
-                // output stream for send message to server
-                out = new PrintWriter(socket.getOutputStream(), true);
-            }
-            else
-                System.out.println("client socket is null");
+            InputStreamReader isr = new InputStreamReader(socket.getInputStream());
+            br = new BufferedReader(isr);
+            // output stream for send message to server
+            out = new PrintWriter(socket.getOutputStream(), true);
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
-    // -----------------------------------------------------------
-    public void receiveMessages() {
-        String line = "";
 
-        try {
-            while (true) {
+    // -----------------------------------------------------------
+
+    public void receiveMessages() {
+        String line;
+        while (true) {
+            try {
+
                 line = br.readLine();
                 if (line != null)
                     ui.addTextToTextArea("Server : " + line + "\n");
+            } catch (IOException e) {
+                e.printStackTrace();
             }
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-
     }
+
     // -----------------------------------------------------------
     public void sendMessage(String message) {
         out.println(message);
+    }
+
+    // -----------------------------------------------------------
+    @Override
+    public void onClick(String str) {
+        sendMessage(str);
     }
     // -----------------------------------------------------------
 }
