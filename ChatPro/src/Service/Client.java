@@ -1,14 +1,14 @@
 package Service;
 
-import Ui.ClientUi;
+import Ui.ChatUi;
 
 import java.io.*;
 import java.net.Socket;
 
-public class Client implements ClientUi.ClickCallback {
+public class Client implements ChatUi.ClickCallback {
     private static int clientNum = 1;
     private BufferedReader br = null;
-    private ClientUi ui;
+    private ChatUi ui;
     private Socket socket;
     private PrintWriter out;
 
@@ -16,7 +16,7 @@ public class Client implements ClientUi.ClickCallback {
     public Client(Socket socket, String userName) {
         this.socket = socket;
         initStreams();
-        ui = new ClientUi(userName, 100, 100, this);
+        ui = new ChatUi(userName, 100, 100, this);
         sendMessage("man zendam");
         receiveMessages();
     }

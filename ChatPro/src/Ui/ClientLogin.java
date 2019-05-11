@@ -100,17 +100,13 @@ public class ClientLogin extends JFrame {
                         response = br.readLine();
                         if (response != null) {
                             if (response.equals(OK)) {
-                                //TODO
-//                                new Client(socket, userName);
-
+                                dispose();
                                 new Thread(new Runnable() {
                                     @Override
                                     public void run() {
                                         new Client(socket, userName);
                                     }
                                 }).start();
-
-                                dispose();
 
                             } else if (response.equals(wrongPass))
                                 JOptionPane.showMessageDialog(null, wrongPass);

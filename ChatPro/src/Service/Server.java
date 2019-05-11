@@ -1,14 +1,14 @@
 package Service;
 
-import Ui.ServerUi;
+import Ui.ChatUi;
 
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
-public class Server {
-    private ServerUi ui;
+public class Server implements ChatUi.ClickCallback {
+    private ChatUi ui;
     private ServerSocket serverSocket = null;
     private Socket currentClintSocket = null;
     private PrintWriter out;
@@ -18,7 +18,7 @@ public class Server {
     public Server() {
         initClientsUserPass();
         int clientNum = 1;
-        ui = new ServerUi("Server", 500, 100, this);
+        ui = new ChatUi("Server", 500, 100, this);
         // init server
         try {
             serverSocket = new ServerSocket(6666);
@@ -38,6 +38,11 @@ public class Server {
         clientsUserPass.put("reza", "123");
         clientsUserPass.put("ali", "1234");
         clientsUserPass.put("hasan", "321");
+    }
+    // -----------------------------------------------------------
+    @Override
+    public void onClick(String str) {
+        sendMessage(str);
     }
 
     // -----------------------------------------------------------
