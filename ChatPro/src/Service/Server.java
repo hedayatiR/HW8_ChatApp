@@ -5,6 +5,7 @@ import Ui.ChatUi;
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Server implements ChatUi.ClickCallback {
@@ -13,10 +14,12 @@ public class Server implements ChatUi.ClickCallback {
     private Socket currentClintSocket = null;
     private PrintWriter out;
     private HashMap<String, String> clientsUserPass;
+    private HashMap<String, ClientTask> onlineClients;
 
     // -----------------------------------------------------------
     public Server() {
         initClientsUserPass();
+        onlineClients = new HashMap<>();
         int clientNum = 1;
         ui = new ChatUi("Server", 500, 100, this);
         // init server
@@ -24,8 +27,8 @@ public class Server implements ChatUi.ClickCallback {
             serverSocket = new ServerSocket(6666);
             ui.addTextToTextArea("Waiting for a client ...\n");
             while (true) {
-                new Thread(new clientTask(serverSocket.accept(), clientNum++))
-                        .start();
+                ClientTask clientTaskObj = new ClientTask(serverSocket.accept(), clientNum++);
+                new Thread(clientTaskObj).start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -39,6 +42,21 @@ public class Server implements ChatUi.ClickCallback {
         clientsUserPass.put("ali", "1234");
         clientsUserPass.put("hasan", "321");
     }
+
+    // -----------------------------------------------------------
+    public void addToOnlineClients(String key, ClientTask value) {
+        synchronized (this.onlineClients) {
+            this.onlineClients.put(key, value);
+        }
+    }
+
+    // -----------------------------------------------------------
+    public void removeFromOnlineClients(String key) {
+        synchronized (this.onlineClients) {
+            this.onlineClients.remove(key);
+        }
+    }
+
     // -----------------------------------------------------------
     @Override
     public void onClick(String str) {
@@ -46,12 +64,24 @@ public class Server implements ChatUi.ClickCallback {
     }
 
     // -----------------------------------------------------------
-    public class clientTask implements Runnable {
+    public synchronized void sendMessage(String message) {
+        // output stream for send message to server
+        try {
+            out = new PrintWriter(currentClintSocket.getOutputStream(), true);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        out.println(message);
+    }
+
+    // -----------------------------------------------------------
+    public class ClientTask implements Runnable {
         private Socket socket;
         private BufferedReader br = null;
+//        private ObjectOutputStream outStream;
         private String clientName;
 
-        public clientTask(Socket socket, int clientNum) {
+        public ClientTask(Socket socket, int clientNum) {
             this.socket = socket;
             this.clientName = "Client " + clientNum;
             ui.addTextToTextArea(this.clientName + " connected!\n");
@@ -63,6 +93,7 @@ public class Server implements ChatUi.ClickCallback {
             if (processUserPass())
                 receiveMessages();
         }
+
         // -----------------------------------------------------------
         public boolean processUserPass() {
             String userName = "";
@@ -74,12 +105,13 @@ public class Server implements ChatUi.ClickCallback {
                         if (clientsUserPass.containsKey(userName)) {
                             String password = br.readLine();
                             if (password != null) {
-                                if(clientsUserPass.get(userName).equals(password)) {
+                                if (clientsUserPass.get(userName).equals(password)) {
                                     Server.this.sendMessage("OK.");
                                     this.clientName = userName;
+                                    sendOnlineClients();
+                                    addToOnlineClients(this.clientName, this);
                                     return true;
-                                }
-                                else
+                                } else
                                     Server.this.sendMessage("Password is wrong!");
                             }
 
@@ -97,12 +129,46 @@ public class Server implements ChatUi.ClickCallback {
         }
 
         // -----------------------------------------------------------
+        private void sendOnlineClients() {
+            ArrayList<String> onlineUsersList = new ArrayList<>();
+            String onlineUsersListStr = "";
+            synchronized (Server.this.onlineClients) {
+                if (!Server.this.onlineClients.isEmpty()) {
+
+                    for (String key :
+                            Server.this.onlineClients.keySet()) {
+                        onlineUsersList.add(key);
+                        onlineUsersListStr += key + ",";
+                    }
+                    System.out.println(onlineUsersListStr);
+//                    sendMessageObj(onlineUsersList);
+                    sendMessage(onlineUsersListStr);
+                }
+            }
+        }
+
+        // -----------------------------------------------------------
+
+//        public void sendMessageObj(Object message) {
+//
+//            try {
+//                outStream = new ObjectOutputStream(socket.getOutputStream());
+//                outStream.flush();
+//                outStream.writeObject(message);
+//                outStream.flush();
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        }
+
+        // -----------------------------------------------------------
         public void initStreams() {
             try {
                 // stream reader for read from server
                 InputStreamReader isr = new InputStreamReader(socket.getInputStream());
                 br = new BufferedReader(isr);
                 out = new PrintWriter(socket.getOutputStream(), true);
+
 
             } catch (IOException e) {
                 e.printStackTrace();
@@ -137,17 +203,6 @@ public class Server implements ChatUi.ClickCallback {
 
         }
 
-    }
-
-    // -----------------------------------------------------------
-    public synchronized void sendMessage(String message) {
-        // output stream for send message to server
-            try {
-                out = new PrintWriter(currentClintSocket.getOutputStream(), true);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        out.println(message);
     }
 
     // -----------------------------------------------------------
