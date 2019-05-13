@@ -4,25 +4,21 @@ import Service.Client;
 
 import javax.swing.*;
 import java.awt.*;
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ConnectException;
 import java.net.Socket;
 import java.net.UnknownHostException;
 
 public class ClientLogin extends JFrame {
-    BufferedReader br = null;
-    //    private JFrame frame;
     private JPanel panel;
     private JTextField tfIP;
     private JTextField tfPort;
     private JTextField tfUsername;
     private JPasswordField pfPassword;
     private JButton loginButton;
-    private String userName;
-    private PrintWriter out;
+
+    private ObjectInputStream sInput;        // to read from the socket
+    private ObjectOutputStream sOutput;        // to write on the socket
     private Socket socket = null;
 
 
@@ -71,10 +67,8 @@ public class ClientLogin extends JFrame {
     // -----------------------------------------------------------
     public void initStreams() {
         try {
-            InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-            br = new BufferedReader(isr);
-            // output stream for send message to server
-            out = new PrintWriter(socket.getOutputStream(), true);
+            sInput = new ObjectInputStream(socket.getInputStream());
+            sOutput = new ObjectOutputStream(socket.getOutputStream());
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -82,40 +76,43 @@ public class ClientLogin extends JFrame {
 
     // -----------------------------------------------------------
     public void sendMessage(String message) {
-        out.println(message);
+        try {
+            sOutput.writeObject(message);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     // -----------------------------------------------------------
     private void loginButtonActionPerformed(java.awt.event.ActionEvent evt) {
-        userName = tfUsername.getText();
+        String userName = tfUsername.getText();
         if (initClient(tfIP.getText(), Integer.parseInt(tfPort.getText()))) {
 
             if (socket.isConnected()) {
-                sendMessage(tfUsername.getText());
+                sendMessage(userName);
                 sendMessage(pfPassword.getText());
 
                 String response = "";
                 try {
                     while (true) {
-                        response = br.readLine();
+                        response = (String) sInput.readObject();
                         if (response != null) {
                             if (response.equals(OK)) {
+
                                 dispose();
-                                new Thread(new Runnable() {
-                                    @Override
-                                    public void run() {
-                                        new Client(socket, userName);
-                                    }
-                                }).start();
+                                new Client(socket, userName, sInput, sOutput);
 
                             } else if (response.equals(wrongPass))
                                 JOptionPane.showMessageDialog(null, wrongPass);
                             else if (response.equals(wrongUserName))
                                 JOptionPane.showMessageDialog(null, wrongUserName);
+
                             break;
                         }
                     }
                 } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
             }

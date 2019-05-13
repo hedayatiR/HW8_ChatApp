@@ -1,31 +1,26 @@
 package Service;
 
-import Ui.ChatUi;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
-public class Server implements ChatUi.ClickCallback {
-    private ChatUi ui;
+public class Server {
     private ServerSocket serverSocket = null;
-    private Socket currentClintSocket = null;
-    private PrintWriter out;
     private HashMap<String, String> clientsUserPass;
+    private HashMap<String, ClientThread> onlineClients;
 
     // -----------------------------------------------------------
     public Server() {
         initClientsUserPass();
-        int clientNum = 1;
-        ui = new ChatUi("Server", 500, 100, this);
+        onlineClients = new HashMap<>();
         // init server
         try {
             serverSocket = new ServerSocket(6666);
-            ui.addTextToTextArea("Waiting for a client ...\n");
+            System.out.println("Waiting for a client ...");
             while (true) {
-                new Thread(new clientTask(serverSocket.accept(), clientNum++))
-                        .start();
+                ClientThread clientThreadObj = new ClientThread(serverSocket.accept());
+                clientThreadObj.start();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -36,59 +31,99 @@ public class Server implements ChatUi.ClickCallback {
     public void initClientsUserPass() {
         clientsUserPass = new HashMap<>();
         clientsUserPass.put("reza", "123");
-        clientsUserPass.put("ali", "1234");
-        clientsUserPass.put("hasan", "321");
-    }
-    // -----------------------------------------------------------
-    @Override
-    public void onClick(String str) {
-        sendMessage(str);
+        clientsUserPass.put("ali", "123");
+        clientsUserPass.put("hasan", "123");
     }
 
     // -----------------------------------------------------------
-    public class clientTask implements Runnable {
+    public void addToOnlineClients(String key, ClientThread value) {
+        synchronized (this.onlineClients) {
+            this.onlineClients.put(key, value);
+        }
+    }
+
+    // -----------------------------------------------------------
+    public void removeFromOnlineClients(String key) {
+        synchronized (this.onlineClients) {
+            this.onlineClients.remove(key);
+        }
+    }
+
+    // -----------------------------------------------------------
+    private synchronized void forwardMessage(Message message) {
+        if(onlineClients.containsKey(message.getReceiver())){
+            onlineClients.get(message.getReceiver()).sendMessage(message);
+        }
+    }
+
+    // -----------------------------------------------------------
+    private void broadcastMessage(Message message) {
+        message.setSender("Server");
+        for (ClientThread client:
+             onlineClients.values()) {
+            client.sendMessage(message);
+        }
+    }
+
+    // -----------------------------------------------------------
+    public class ClientThread extends Thread {
+        ObjectInputStream sInput;
+        ObjectOutputStream sOutput;
         private Socket socket;
-        private BufferedReader br = null;
         private String clientName;
 
-        public clientTask(Socket socket, int clientNum) {
+        // ***************************************
+        public ClientThread(Socket socket) {
             this.socket = socket;
-            this.clientName = "Client " + clientNum;
-            ui.addTextToTextArea(this.clientName + " connected!\n");
+            initStreams();
         }
 
+        // ***************************************
+        public void initStreams() {
+            try {
+                sOutput = new ObjectOutputStream(socket.getOutputStream());
+                sInput = new ObjectInputStream(socket.getInputStream());
+            } catch (IOException e) {
+                System.out.println("Exception creating new Input/output Streams: " + e);
+            }
+        }
+
+        // ***************************************
         @Override
         public void run() {
-            initStreams();
             if (processUserPass())
                 receiveMessages();
         }
-        // -----------------------------------------------------------
+
+        // ***************************************
         public boolean processUserPass() {
             String userName = "";
             if (socket.isConnected()) {
-                Server.this.currentClintSocket = this.socket;
                 try {
-                    userName = br.readLine();
+                    userName = (String) sInput.readObject();
                     if (userName != null) {
                         if (clientsUserPass.containsKey(userName)) {
-                            String password = br.readLine();
+                            String password = (String) sInput.readObject();
                             if (password != null) {
-                                if(clientsUserPass.get(userName).equals(password)) {
-                                    Server.this.sendMessage("OK.");
+                                if (clientsUserPass.get(userName).equals(password)) {
+                                    sendMessage("OK.");
                                     this.clientName = userName;
+                                    sendOnlineClients();
+                                    broadcastMessage(new Message(this.clientName + " has joined room!"));
+                                    addToOnlineClients(this.clientName, this);
                                     return true;
-                                }
-                                else
-                                    Server.this.sendMessage("Password is wrong!");
+                                } else
+                                    sendMessage("Password is wrong!");
                             }
 
                         } else {
-                            Server.this.sendMessage("There is no such user name!");
+                            sendMessage("There is no such user name!");
                         }
 
                     }
                 } catch (IOException e) {
+                    e.printStackTrace();
+                } catch (ClassNotFoundException e) {
                     e.printStackTrace();
                 }
 
@@ -96,59 +131,66 @@ public class Server implements ChatUi.ClickCallback {
             return false;
         }
 
-        // -----------------------------------------------------------
-        public void initStreams() {
-            try {
-                // stream reader for read from server
-                InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-                br = new BufferedReader(isr);
-                out = new PrintWriter(socket.getOutputStream(), true);
+        // ***************************************
+        private void sendOnlineClients() {
+            String onlineUsersListStr = "";
+            synchronized (Server.this.onlineClients) {
+                if (!Server.this.onlineClients.isEmpty()) {
 
-            } catch (IOException e) {
-                e.printStackTrace();
+                    for (String key :
+                            Server.this.onlineClients.keySet()) {
+                        onlineUsersListStr += key + ",";
+                    }
+                    sendMessage(onlineUsersListStr);
+                } else
+                    sendMessage("No online user!\n");
             }
         }
 
-        // -----------------------------------------------------------
+        // ***************************************
         public void receiveMessages() {
-            String line = "";
+            Message message;
 
             try {
                 while (true) {
                     if (socket.isConnected()) {
-                        line = br.readLine();
-                        if (line != null) {
-                            currentClintSocket = socket;
-                            ui.addTextToTextArea(this.clientName + " : " + line + "\n");
+                        message = (Message) sInput.readObject();
+                        if (message != null) {
+                            forwardMessage(message);
                         }
+
                     }
                 }
+
             } catch (java.net.SocketException e) {
-                ui.addTextToTextArea("connection to " + this.clientName + " lost!\n");
+                removeFromOnlineClients(this.clientName);
+                broadcastMessage(new Message(this.clientName + " left room!\n"));
                 try {
+                    sInput.close();
+                    sOutput.close();
                     socket.close();
                 } catch (IOException e1) {
                     e1.printStackTrace();
                 }
-                e.printStackTrace();
+
             } catch (IOException e) {
+                e.printStackTrace();
+
+            } catch (ClassNotFoundException e) {
                 e.printStackTrace();
             }
 
         }
 
-    }
-
-    // -----------------------------------------------------------
-    public synchronized void sendMessage(String message) {
-        // output stream for send message to server
+        // ***************************************
+        public void sendMessage(Object message) {
             try {
-                out = new PrintWriter(currentClintSocket.getOutputStream(), true);
+                sOutput.writeObject(message);
             } catch (IOException e) {
                 e.printStackTrace();
             }
-        out.println(message);
-    }
+        }
 
+    }
     // -----------------------------------------------------------
 }
