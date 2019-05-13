@@ -5,6 +5,9 @@ import Ui.ChatUi;
 import java.io.*;
 import java.net.Socket;
 
+//TODO
+// add log of all messages
+// save them to a file
 public class Client implements ChatUi.ClickCallback {
     private Socket socket;
     private ObjectInputStream sInput;		// to read from the socket
@@ -25,42 +28,6 @@ public class Client implements ChatUi.ClickCallback {
         // Listen to messages from server
         new ListenFromServer().start();
     }
-
-
-    // -----------------------------------------------------------
-//    private void receiveListOfUsersObj() {
-//        try {
-//            Thread.sleep(50);
-//            inStream = new ObjectInputStream(socket.getInputStream());
-//            ArrayList<String> usersList = (ArrayList<String>) inStream.readObject();
-//            if (usersList == null)
-//                System.out.println("Null users");
-//            if (usersList.isEmpty())
-//                System.out.println("Empty users");
-//            System.out.println(usersList);
-//            ui.addTextToTextArea(usersList.toString());
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        } catch (ClassNotFoundException e) {
-//            e.printStackTrace();
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
-//    }
-
-    // -----------------------------------------------------------
-//    public void initStreams() {
-//        try {
-////            InputStreamReader isr = new InputStreamReader(socket.getInputStream());
-////            br = new BufferedReader(isr);
-////            out = new PrintWriter(socket.getOutputStream(), true);
-//            sOutput = new ObjectOutputStream(socket.getOutputStream());
-//            sInput  = new ObjectInputStream(socket.getInputStream());
-//
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-//    }
 
     // -----------------------------------------------------------
     public void sendMessage(Message message) {

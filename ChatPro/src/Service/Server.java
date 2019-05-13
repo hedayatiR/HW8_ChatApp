@@ -63,6 +63,15 @@ public class Server {
     }
 
     // -----------------------------------------------------------
+    private void broadcastMessage(Message message) {
+        message.setSender("Server");
+        for (ClientThread client:
+             onlineClients.values()) {
+            client.sendMessage(message);
+        }
+    }
+
+    // -----------------------------------------------------------
     public class ClientThread extends Thread {
         ObjectInputStream sInput;
         ObjectOutputStream sOutput;
@@ -108,6 +117,7 @@ public class Server {
                                     sendMessage("OK.");
                                     this.clientName = userName;
                                     sendOnlineClients();
+                                    broadcastMessage(new Message(this.clientName + " has joined room!"));
                                     addToOnlineClients(this.clientName, this);
                                     return true;
                                 } else
@@ -165,8 +175,9 @@ public class Server {
                 }
 
             } catch (java.net.SocketException e) {
-                ui.addTextToTextArea("connection to " + this.clientName + " lost!\n");
+                ui.addTextToTextArea("Connection to " + this.clientName + " lost!\n");
                 removeFromOnlineClients(this.clientName);
+                broadcastMessage(new Message(this.clientName + " left room!\n"));
                 try {
                     sInput.close();
                     sOutput.close();
