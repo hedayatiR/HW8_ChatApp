@@ -70,13 +70,13 @@ public class ChatUi extends JFrame {
     // -----------------------------------------------------------
 
     private void jButtonSendActionPerformed(java.awt.event.ActionEvent evt) {
-        clickCallback.onClick(tfMessage.getText());
+        clickCallback.onClick(tfMessage.getText(), tfReceiver.getText());
         addTextToTextArea("Me : " + tfMessage.getText() + "\n");
         tfMessage.setText("");
     }
 
     // -----------------------------------------------------------
     public interface ClickCallback {
-        void onClick(String str);
+        void onClick(String message, String receiver);
     }
 }

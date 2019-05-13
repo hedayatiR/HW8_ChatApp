@@ -6,10 +6,10 @@ import java.io.*;
 import java.net.Socket;
 
 public class Client implements ChatUi.ClickCallback {
-    private static int clientNum = 1;
     private Socket socket;
     private ObjectInputStream sInput;		// to read from the socket
     private ObjectOutputStream sOutput;		// to write on the socket
+    private String clientName;
 
     private ChatUi ui;
 
@@ -18,8 +18,9 @@ public class Client implements ChatUi.ClickCallback {
         this.socket = socket;
         this.sInput = sInput;
         this.sOutput = sOutput;
+        this.clientName = userName;
         ui = new ChatUi(userName, 100, 100, this);
-        sendMessage("man zendam");
+        sendMessage(new Message("man zendam"));
 
         // Listen to messages from server
         new ListenFromServer().start();
@@ -62,7 +63,7 @@ public class Client implements ChatUi.ClickCallback {
 //    }
 
     // -----------------------------------------------------------
-    public void sendMessage(String message) {
+    public void sendMessage(Message message) {
         try {
             sOutput.writeObject(message);
         } catch (IOException e) {
@@ -72,8 +73,9 @@ public class Client implements ChatUi.ClickCallback {
 
     // -----------------------------------------------------------
     @Override
-    public void onClick(String str) {
-        sendMessage(str);
+    public void onClick(String message, String receiver) {
+        Message messageObj = new Message(this.clientName, receiver, message);
+        sendMessage(messageObj);
     }
     // -----------------------------------------------------------
     class ListenFromServer extends Thread {

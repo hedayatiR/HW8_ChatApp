@@ -7,7 +7,7 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
-public class Server implements ChatUi.ClickCallback {
+public class Server {
     private ChatUi ui;
     private ServerSocket serverSocket = null;
     private HashMap<String, String> clientsUserPass;
@@ -18,7 +18,7 @@ public class Server implements ChatUi.ClickCallback {
         initClientsUserPass();
         onlineClients = new HashMap<>();
         int clientNum = 1;
-        ui = new ChatUi("Server", 500, 100, this);
+        ui = new ChatUi("Server", 500, 100, null);
         // init server
         try {
             serverSocket = new ServerSocket(6666);
@@ -55,18 +55,13 @@ public class Server implements ChatUi.ClickCallback {
     }
 
     // -----------------------------------------------------------
-    @Override
-    public void onClick(String str) {
-//        sendMessage(str);
-    }
-
-    // -----------------------------------------------------------
 
     public class ClientThread extends Thread {
         ObjectInputStream sInput;
         ObjectOutputStream sOutput;
         private Socket socket;
         private String clientName;
+
         // ***************************************
         public ClientThread(Socket socket, int clientNum) {
             this.socket = socket;
@@ -74,16 +69,17 @@ public class Server implements ChatUi.ClickCallback {
             initStreams();
             ui.addTextToTextArea(this.clientName + " connected!\n");
         }
+
         // ***************************************
         public void initStreams() {
             try {
                 sOutput = new ObjectOutputStream(socket.getOutputStream());
-                sInput  = new ObjectInputStream(socket.getInputStream());
-            }
-            catch (IOException e) {
+                sInput = new ObjectInputStream(socket.getInputStream());
+            } catch (IOException e) {
                 System.out.println("Exception creating new Input/output Streams: " + e);
             }
         }
+
         // ***************************************
         @Override
         public void run() {
@@ -153,7 +149,7 @@ public class Server implements ChatUi.ClickCallback {
             try {
                 while (true) {
                     if (socket.isConnected()) {
-                        line = (String) sInput.readObject();
+                        line = ((Message) sInput.readObject()).getMessage();
                         if (line != null) {
                             ui.addTextToTextArea(this.clientName + " : " + line + "\n");
                         }
@@ -178,6 +174,7 @@ public class Server implements ChatUi.ClickCallback {
             }
 
         }
+
         // ***************************************
         public void sendMessage(String message) {
             try {
