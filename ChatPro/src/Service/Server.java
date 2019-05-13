@@ -56,6 +56,13 @@ public class Server {
 
     // -----------------------------------------------------------
 
+    private synchronized void forwardMessage(Message message) {
+        if(onlineClients.containsKey(message.getReceiver())){
+            onlineClients.get(message.getReceiver()).sendMessage(message);
+        }
+    }
+
+    // -----------------------------------------------------------
     public class ClientThread extends Thread {
         ObjectInputStream sInput;
         ObjectOutputStream sOutput;
@@ -134,7 +141,6 @@ public class Server {
 //                        onlineUsersList.add(key);
                         onlineUsersListStr += key + ",";
                     }
-                    System.out.println(onlineUsersListStr);
 //                    sendMessageObj(onlineUsersList);
                     sendMessage(onlineUsersListStr);
                 } else
@@ -144,17 +150,20 @@ public class Server {
 
         // ***************************************
         public void receiveMessages() {
-            String line = "";
+            Message message;
 
             try {
                 while (true) {
                     if (socket.isConnected()) {
-                        line = ((Message) sInput.readObject()).getMessage();
-                        if (line != null) {
-                            ui.addTextToTextArea(this.clientName + " : " + line + "\n");
+                        message = (Message) sInput.readObject();
+                        if (message != null) {
+                            ui.addTextToTextArea(this.clientName + " : " + message.getMessage() + "\n");
+                            forwardMessage(message);
                         }
+
                     }
                 }
+
             } catch (java.net.SocketException e) {
                 ui.addTextToTextArea("connection to " + this.clientName + " lost!\n");
                 removeFromOnlineClients(this.clientName);
@@ -176,7 +185,7 @@ public class Server {
         }
 
         // ***************************************
-        public void sendMessage(String message) {
+        public void sendMessage(Object message) {
             try {
                 sOutput.writeObject(message);
             } catch (IOException e) {

@@ -90,7 +90,7 @@ public class Client implements ChatUi.ClickCallback {
                 while (true) {
                     line = (String) sInput.readObject();
                     if (!line.isEmpty()) {
-                        ui.addTextToTextArea(line);
+                        ui.addTextToTextArea(line + "\n");
                         break;
                     }
                 }
@@ -103,12 +103,12 @@ public class Client implements ChatUi.ClickCallback {
         }
         // -----------------
         public void receiveMessages() {
-            String line;
+            Message message;
             while (true) {
                 try {
-                    line = (String) sInput.readObject();
-                    if (line != null)
-                        ui.addTextToTextArea("Server : " + line + "\n");
+                    message = (Message)sInput.readObject();
+                    if (message != null)
+                        ui.addTextToTextArea(message.getSender() + " : " + message.getMessage() + "\n");
                 } catch (IOException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
