@@ -2,16 +2,15 @@ package Service;
 
 import Ui.ChatUi;
 
+import javax.swing.*;
 import java.io.*;
 import java.net.Socket;
 
-//TODO
-// add log of all messages
-// save them to a file
 public class Client implements ChatUi.ClickCallback {
+    private static String logString = "";
     private Socket socket;
-    private ObjectInputStream sInput;		// to read from the socket
-    private ObjectOutputStream sOutput;		// to write on the socket
+    private ObjectInputStream sInput;        // to read from the socket
+    private ObjectOutputStream sOutput;        // to write on the socket
     private String clientName;
 
     private ChatUi ui;
@@ -23,7 +22,6 @@ public class Client implements ChatUi.ClickCallback {
         this.sOutput = sOutput;
         this.clientName = userName;
         ui = new ChatUi(userName, 100, 100, this);
-        sendMessage(new Message("man zendam"));
 
         // Listen to messages from server
         new ListenFromServer().start();
@@ -40,24 +38,48 @@ public class Client implements ChatUi.ClickCallback {
 
     // -----------------------------------------------------------
     @Override
-    public void onClick(String message, String receiver) {
+    public void onSendBtnClick(String message, String receiver) {
         Message messageObj = new Message(this.clientName, receiver, message);
         sendMessage(messageObj);
+        logString += "Me to " + receiver + " : " + message + "\n";
     }
+
+    // -----------------------------------------------------------
+    @Override
+    public void onSaveLogBtnClick() {
+        BufferedWriter writer = null;
+        try {
+            File file = new File("Log/" + this.clientName + "_Log.txt");
+            file.getParentFile().mkdirs();
+            writer = new BufferedWriter(new FileWriter(file));
+            writer.write(logString);
+            writer.close();
+            JOptionPane.showMessageDialog(null, "Log file saved successfully.");
+        } catch (IOException e) {
+            e.printStackTrace();
+            JOptionPane.showMessageDialog(null, "Sorry. Failed to save file!");
+        }
+    }
+
     // -----------------------------------------------------------
     class ListenFromServer extends Thread {
         public void run() {
             receiveListOfUsers();
             receiveMessages();
         }
+
         // -----------------
         private void receiveListOfUsers() {
+            String tmp = "List of online users in startup time:\n";
             String line;
             try {
                 while (true) {
                     line = (String) sInput.readObject();
                     if (!line.isEmpty()) {
+                        ui.addTextToTextArea(tmp);
+                        logString += tmp;
                         ui.addTextToTextArea(line + "\n");
+                        logString += line + "\n";
                         break;
                     }
                 }
@@ -68,19 +90,34 @@ public class Client implements ChatUi.ClickCallback {
                 e.printStackTrace();
             }
         }
+
         // -----------------
         public void receiveMessages() {
             Message message;
-            while (true) {
-                try {
-                    message = (Message)sInput.readObject();
-                    if (message != null)
-                        ui.addTextToTextArea(message.getSender() + " : " + message.getMessage() + "\n");
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (ClassNotFoundException e) {
-                    e.printStackTrace();
+            try {
+                while (true) {
+                    message = (Message) sInput.readObject();
+                    if (message != null) {
+                        String txt = message.getSender() + " : " + message.getMessage() + "\n";
+                        ui.addTextToTextArea(txt);
+                        logString += txt;
+                    }
                 }
+
+            } catch (IOException e) {
+                JOptionPane.showMessageDialog(null, "Server is shutdown");
+                ui.dispose();
+                try {
+                    sInput.close();
+                    sOutput.close();
+                    socket.close();
+                } catch (IOException ex) {
+                    ex.printStackTrace();
+                }
+                return;
+
+            } catch (ClassNotFoundException e) {
+                e.printStackTrace();
             }
         }
 

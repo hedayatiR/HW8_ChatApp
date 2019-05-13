@@ -2,16 +2,18 @@ package Ui;
 
 import javax.swing.*;
 import java.awt.*;
+import java.awt.event.ActionEvent;
 
 public class ChatUi extends JFrame {
     private JPanel panelMessage;
     private JPanel panelReceiver;
     private JPanel panel;
     private JLabel labelMessage;
-    JLabel labelReceiver;
+    private JLabel labelReceiver;
     private JTextField tfMessage;
     private JTextField tfReceiver;
     private JButton send;
+    private JButton saveLogBtn;
     private JTextArea ta;
     private ClickCallback clickCallback;
     // -----------------------------------------------------------
@@ -37,8 +39,10 @@ public class ChatUi extends JFrame {
         panelReceiver = new JPanel();
         labelReceiver = new JLabel("Receiver : ");
         tfReceiver = new JTextField(20);
+        saveLogBtn = new JButton("Save Log to file");
         panelReceiver.add(labelReceiver);
         panelReceiver.add(tfReceiver);
+        panelReceiver.add(saveLogBtn);
 
         panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
@@ -61,6 +65,16 @@ public class ChatUi extends JFrame {
                 jButtonSendActionPerformed(evt);
             }
         });
+
+        saveLogBtn.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                saveLogBtnActionPerformed(evt);
+            }
+        });
+    }
+    // -----------------------------------------------------------
+    private void saveLogBtnActionPerformed(ActionEvent evt) {
+        clickCallback.onSaveLogBtnClick();
     }
     // -----------------------------------------------------------
 
@@ -70,13 +84,14 @@ public class ChatUi extends JFrame {
     // -----------------------------------------------------------
 
     private void jButtonSendActionPerformed(java.awt.event.ActionEvent evt) {
-        clickCallback.onClick(tfMessage.getText(), tfReceiver.getText());
+        clickCallback.onSendBtnClick(tfMessage.getText(), tfReceiver.getText());
         addTextToTextArea("Me : " + tfMessage.getText() + "\n");
         tfMessage.setText("");
     }
 
     // -----------------------------------------------------------
     public interface ClickCallback {
-        void onClick(String message, String receiver);
+        void onSendBtnClick(String message, String receiver);
+        void onSaveLogBtnClick();
     }
 }

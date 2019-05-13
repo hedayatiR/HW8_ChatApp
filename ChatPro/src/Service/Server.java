@@ -1,14 +1,11 @@
 package Service;
 
-import Ui.ChatUi;
-
 import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
 
 public class Server {
-    private ChatUi ui;
     private ServerSocket serverSocket = null;
     private HashMap<String, String> clientsUserPass;
     private HashMap<String, ClientThread> onlineClients;
@@ -17,14 +14,12 @@ public class Server {
     public Server() {
         initClientsUserPass();
         onlineClients = new HashMap<>();
-        int clientNum = 1;
-        ui = new ChatUi("Server", 500, 100, null);
         // init server
         try {
             serverSocket = new ServerSocket(6666);
-            ui.addTextToTextArea("Waiting for a client ...\n");
+            System.out.println("Waiting for a client ...");
             while (true) {
-                ClientThread clientThreadObj = new ClientThread(serverSocket.accept(), clientNum++);
+                ClientThread clientThreadObj = new ClientThread(serverSocket.accept());
                 clientThreadObj.start();
             }
         } catch (IOException e) {
@@ -55,7 +50,6 @@ public class Server {
     }
 
     // -----------------------------------------------------------
-
     private synchronized void forwardMessage(Message message) {
         if(onlineClients.containsKey(message.getReceiver())){
             onlineClients.get(message.getReceiver()).sendMessage(message);
@@ -79,11 +73,9 @@ public class Server {
         private String clientName;
 
         // ***************************************
-        public ClientThread(Socket socket, int clientNum) {
+        public ClientThread(Socket socket) {
             this.socket = socket;
-            this.clientName = "Client " + clientNum;
             initStreams();
-            ui.addTextToTextArea(this.clientName + " connected!\n");
         }
 
         // ***************************************
@@ -141,17 +133,14 @@ public class Server {
 
         // ***************************************
         private void sendOnlineClients() {
-//            ArrayList<String> onlineUsersList = new ArrayList<>();
             String onlineUsersListStr = "";
             synchronized (Server.this.onlineClients) {
                 if (!Server.this.onlineClients.isEmpty()) {
 
                     for (String key :
                             Server.this.onlineClients.keySet()) {
-//                        onlineUsersList.add(key);
                         onlineUsersListStr += key + ",";
                     }
-//                    sendMessageObj(onlineUsersList);
                     sendMessage(onlineUsersListStr);
                 } else
                     sendMessage("No online user!\n");
@@ -167,7 +156,6 @@ public class Server {
                     if (socket.isConnected()) {
                         message = (Message) sInput.readObject();
                         if (message != null) {
-                            ui.addTextToTextArea(this.clientName + " : " + message.getMessage() + "\n");
                             forwardMessage(message);
                         }
 
@@ -175,7 +163,6 @@ public class Server {
                 }
 
             } catch (java.net.SocketException e) {
-                ui.addTextToTextArea("Connection to " + this.clientName + " lost!\n");
                 removeFromOnlineClients(this.clientName);
                 broadcastMessage(new Message(this.clientName + " left room!\n"));
                 try {
