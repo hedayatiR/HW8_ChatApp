@@ -106,12 +106,17 @@ public class Server {
                             String password = (String) sInput.readObject();
                             if (password != null) {
                                 if (clientsUserPass.get(userName).equals(password)) {
-                                    sendMessage("OK.");
-                                    this.clientName = userName;
-                                    sendOnlineClients();
-                                    broadcastMessage(new Message(this.clientName + " has joined room!"));
-                                    addToOnlineClients(this.clientName, this);
-                                    return true;
+                                    if (onlineClients.containsKey(userName)){
+                                        sendMessage("You logged in before!");
+                                    }
+                                    else {
+                                        sendMessage("OK.");
+                                        this.clientName = userName;
+                                        sendOnlineClients();
+                                        broadcastMessage(new Message(this.clientName + " has joined room!"));
+                                        addToOnlineClients(this.clientName, this);
+                                        return true;
+                                    }
                                 } else
                                     sendMessage("Password is wrong!");
                             }

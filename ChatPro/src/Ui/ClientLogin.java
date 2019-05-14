@@ -26,6 +26,7 @@ public class ClientLogin extends JFrame {
     private String OK = "OK.";
     private String wrongPass = "Password is wrong!";
     private String wrongUserName = "There is no such user name!";
+    private String userLoggedInBefore = "You logged in before!";
 
     // -----------------------------------------------------------
     public ClientLogin() {
@@ -106,6 +107,8 @@ public class ClientLogin extends JFrame {
                                 JOptionPane.showMessageDialog(null, wrongPass);
                             else if (response.equals(wrongUserName))
                                 JOptionPane.showMessageDialog(null, wrongUserName);
+                            else if (response.equals(userLoggedInBefore))
+                                JOptionPane.showMessageDialog(null, userLoggedInBefore);
 
                             break;
                         }
